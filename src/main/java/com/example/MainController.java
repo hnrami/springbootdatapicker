@@ -1,5 +1,6 @@
 package com.example;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -9,11 +10,16 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,7 +49,6 @@ public class MainController {
     try {
       Connection connection = getConnection();
       dateRecord(connection, apptDate);
-     
     } catch (Exception e) {
       e.printStackTrace();
       return "There was an error: " + e.getMessage();
@@ -68,14 +73,14 @@ public class MainController {
   }
  
   private void dateRecord(Connection connection, String date) throws SQLException, IOException {
-	String pathCurrentTime =Long.toString(new Date().getTime());
-	String path = "D:\\record\\"+pathCurrentTime+".csv";
+//	String pathCurrentTime =Long.toString(new Date().getTime());
+//	String path = "D:\\record\\"+pathCurrentTime+".csv";
+	  String path ="./src/main/resources/file/output.csv";
 	CSVWriter writer = new CSVWriter(new FileWriter(path));
     PreparedStatement pstmt = connection.prepareStatement(
         "SELECT * FROM appointments WHERE date=?");
     pstmt.setString(1, date);
     ResultSet rs = pstmt.executeQuery();
-
     while (rs.next()) {
     	String id =rs.getString("invitee_id");
     	String dateRecord =rs.getString("date");
@@ -88,6 +93,20 @@ public class MainController {
     
   }
 
+  @RequestMapping(value="/result.csv", method=RequestMethod.GET)
+	public ResponseEntity<FileSystemResource> downloadPDFFile() throws InterruptedException {
+		System.out.println("\n********** Download CSV File : ************\n");
+		
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.parseMediaType("application/csv"));
+		
+		File file = FileUtils.getFile("./src/main/resources/file/output.csv");
+		
+		FileSystemResource fileSystemResource = new FileSystemResource(file);
+		Thread.sleep(5000);
+		
+		return new ResponseEntity<FileSystemResource>(fileSystemResource, headers, HttpStatus.OK);
+	}
  
 
   private Connection getConnection() throws URISyntaxException, SQLException {
